@@ -5,5 +5,6 @@ So this is a basic vuejs app used to get youtube videos from a specific channel 
 ## Installation
 
 - git clone `https://github.com/TheWalkingLeek/tyspm.git`
+- adjust the api key to your own
 - yarn
 - yarn serve
