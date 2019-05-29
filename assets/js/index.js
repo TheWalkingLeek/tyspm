@@ -1,23 +1,71 @@
 $(document).ready(() => {
-  Vue.component('video-show', {
-    props: ['id'],
+  Vue.component('playlist-show', {
+    props: ['id', 'name'],
 
-    template: `
-<iframe width="560" height="315" v-bind:src="'https://www.youtube.com/embed/' + this.id + '?controls=0'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    data: function() {
+      return {
+        apiUrl: 'https://www.googleapis.com/youtube/v3/',
+        resultAmount: 10,
+        videos: [],
+        currentVideo: null,
+      };
+    },
+
+    methods: {
+      findVideos() {
+        if (this.resultAmount <= 0 && this.resultAmount > 50) return;
+        this.$http
+          .get(this.apiUrl + 'playlistItems', {
+            params: {
+              part: 'snippet',
+              order: 'date',
+              playlistId: this.id,
+              maxResults: this.resultAmount,
+              key: key.apiKey,
+            },
+          })
+          .then(
+            response => {
+              this.videos = response.body.items.reverse();
+              debugger;
+              this.currentVideo = this.videos.pop();
+            },
+            response => {
+              console.log('lel');
+            },
+          );
+      },
+
+      nextVideo() {
+        this.currentVideo = this.videos.pop();
+      },
+    },
+
+    template: `<div>
+    <h2>{{ name }}</h2><label>Amount of Videos</label><input v-model="resultAmount">
+    <button @click="findVideos">Find Videos</button>
+    <div><video-show v-if="currentVideo" :id="currentVideo.snippet.resourceId.videoId"></video-show>
+    <button v-if="currentVideo" @click="nextVideo">Next Video</button></div></div>
     `,
   }),
+    Vue.component('video-show', {
+      props: ['id'],
+
+      template: `
+<iframe width="560" height="315" v-bind:src="'https://www.youtube.com/embed/' + this.id + '?controls=0'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    `,
+    }),
     Vue.component('channel-show', {
       props: ['name', 'id'],
       data: function() {
         return {
-          apiUrl:
-            'https://www.googleapis.com/youtube/v3/search?part=snippet&order=date&key=' +
-            key.apiKey,
+          apiUrl: 'https://www.googleapis.com/youtube/v3/',
           selected: false,
           resultAmount: 10,
           searchQuery: '',
           videos: [],
           currentVideo: null,
+          playlists: [],
         };
       },
       methods: {
@@ -33,11 +81,14 @@ $(document).ready(() => {
           if (!this.searchQuery) this.searchQuery = '';
           if (this.resultAmount <= 0 && this.resultAmount > 50) return;
           this.$http
-            .get(this.apiUrl, {
+            .get(this.apiUrl + 'search', {
               params: {
+                part: 'snippet',
+                order: 'date',
                 channelId: this.id,
                 q: this.searchQuery,
                 maxResults: this.resultAmount,
+                key: key.apiKey,
               },
             })
             .then(
@@ -51,12 +102,42 @@ $(document).ready(() => {
               },
             );
         },
+
+        findPlaylists() {
+          this.$http
+            .get(this.apiUrl + 'playlists', {
+              params: {
+                part: 'snippet',
+                channelId: this.id,
+                maxResults: 50,
+                key: key.apiKey,
+              },
+            })
+            .then(
+              response => {
+                this.playlists = response.body.items;
+              },
+              response => {
+                console.log('lel');
+              },
+            );
+        },
       },
       template: `<div>{{ name }}
     <button @click="selectChannel">select</button>
     <div v-if="selected">
+    <h2>Playlists</h2>
+    <button @click="findPlaylists">Find Playlists</button>
+    <div>
+      <ul>
+        <li v-for="playlist in playlists">
+          <playlist-show :id="playlist.id" :name="playlist.snippet.title"></playlist-show>
+        </li>
+      </ul>
+    </div>
+    <h2>Videos</h2>
     <label>Amount of Videos</label><input v-model="resultAmount">
-    <label>Searchquery</label><input v-model="searchQuery"><button @click="findVideos">Submit</button></div>
+    <label>Searchquery</label><input v-model="searchQuery"><button @click="findVideos">Find Videos</button></div>
     <div><video-show v-if="currentVideo" :id="currentVideo.id.videoId"></video-show>
     <button v-if="currentVideo" @click="nextVideo">Next Video</button></div>
     </div>`,
