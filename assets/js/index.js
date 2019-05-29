@@ -5,30 +5,35 @@ $(document).ready(() => {
     data: function() {
       return {
         apiUrl: 'https://www.googleapis.com/youtube/v3/',
-        resultAmount: 10,
         videos: [],
         currentVideo: null,
       };
     },
 
     methods: {
-      findVideos() {
+      findVideos(pageToken) {
         if (this.resultAmount <= 0 && this.resultAmount > 50) return;
         this.$http
           .get(this.apiUrl + 'playlistItems', {
             params: {
               part: 'snippet',
-              order: 'date',
+              order: 'order',
+              maxResults: 50,
               playlistId: this.id,
-              maxResults: this.resultAmount,
               key: key.apiKey,
+              pageToken: pageToken,
             },
           })
           .then(
             response => {
-              this.videos = response.body.items.reverse();
-              debugger;
-              this.currentVideo = this.videos.pop();
+              this.videos = this.videos.concat(response.body.items);
+              if (response.body.nextPageToken) {
+                this.findVideos(response.body.nextPageToken);
+              } else {
+                debugger;
+                this.videos = this.videos.reverse();
+                this.currentVideo = this.videos.pop();
+              }
             },
             response => {
               console.log('lel');
@@ -42,7 +47,7 @@ $(document).ready(() => {
     },
 
     template: `<div>
-    <h2>{{ name }}</h2><label>Amount of Videos</label><input v-model="resultAmount">
+    <h2>{{ name }}</h2>
     <button @click="findVideos">Find Videos</button>
     <div><video-show v-if="currentVideo" :id="currentVideo.snippet.resourceId.videoId"></video-show>
     <button v-if="currentVideo" @click="nextVideo">Next Video</button></div></div>
