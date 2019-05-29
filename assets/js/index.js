@@ -11,12 +11,13 @@ $(document).ready(() => {
       data: function() {
         return {
           apiUrl:
-            'https://www.googleapis.com/youtube/v3/search?part=snippet&key=' +
+            'https://www.googleapis.com/youtube/v3/search?part=snippet&order=date&key=' +
             key.apiKey,
           selected: false,
           resultAmount: 10,
-          searchQuery: 'WiiWare Chronicles',
+          searchQuery: '',
           videos: [],
+          currentVideo: null,
         };
       },
       methods: {
@@ -24,7 +25,12 @@ $(document).ready(() => {
           this.selected = true;
         },
 
+        nextVideo() {
+          this.currentVideo = this.videos.pop();
+        },
+
         findVideos() {
+          if (!this.searchQuery) this.searchQuery = '';
           if (this.resultAmount <= 0 && this.resultAmount > 50) return;
           this.$http
             .get(this.apiUrl, {
@@ -37,6 +43,8 @@ $(document).ready(() => {
             .then(
               response => {
                 this.videos = response.body.items;
+
+                this.currentVideo = response.body.items.pop();
               },
               response => {
                 console.log('lel');
@@ -47,9 +55,10 @@ $(document).ready(() => {
       template: `<div>{{ name }}
     <button @click="selectChannel">select</button>
     <div v-if="selected">
-    <label>Anzahl Videos</label><input v-model="resultAmount">
-    <label>Suchbegriff</label><input v-model="searchQuery"><button @click="findVideos">Submit</button></div>
-    <div><video-show v-for="video in videos" :id="video.id.videoId"></video-show></div>
+    <label>Amount of Videos</label><input v-model="resultAmount">
+    <label>Searchquery</label><input v-model="searchQuery"><button @click="findVideos">Submit</button></div>
+    <div><video-show v-if="currentVideo" :id="currentVideo.id.videoId"></video-show>
+    <button v-if="currentVideo" @click="nextVideo">Next Video</button></div>
     </div>`,
     });
 
@@ -59,7 +68,7 @@ $(document).ready(() => {
       return {
         apiUrl:
           'https://www.googleapis.com/youtube/v3/channels?key=' + key.apiKey,
-        channelName: 'scottthewoz',
+        channelName: '',
         channels: [],
       };
     },
